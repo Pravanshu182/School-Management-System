@@ -1,4 +1,4 @@
-# 🎓 EduCore — School & College Management System
+# 🎓 EduCores — School & College Management System
 
 A complete, beautiful web-based School Management System built with **HTML, CSS, and JavaScript**.  
 No backend needed — data is saved in your browser's localStorage.
