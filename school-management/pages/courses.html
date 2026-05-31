@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Courses — EduCore</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">E</div><span>EduCore</span></div>
+  <nav class="sidebar-nav">
+    <a href="../index.html" class="nav-item"><span class="nav-icon">⊞</span> Dashboard</a>
+    <a href="students.html"  class="nav-item"><span class="nav-icon">👤</span> Students</a>
+    <a href="teachers.html"  class="nav-item"><span class="nav-icon">🎓</span> Teachers</a>
+    <a href="courses.html"   class="nav-item active"><span class="nav-icon">📚</span> Courses</a>
+    <a href="attendance.html" class="nav-item"><span class="nav-icon">✅</span> Attendance</a>
+    <a href="grades.html"    class="nav-item"><span class="nav-icon">📊</span> Grades</a>
+    <a href="notices.html"   class="nav-item"><span class="nav-icon">📢</span> Notices</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card"><div class="user-avatar">A</div><div><div class="user-name">Admin</div><div class="user-role">Super Admin</div></div></div>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <h1 class="page-title">Courses</h1>
+  </header>
+  <div class="page-body">
+    <div class="section-header">
+      <div class="search-bar" style="flex:1;margin-bottom:0">
+        <input type="text" class="search-input" placeholder="🔍  Search courses…" id="searchInput" oninput="renderTable()"/>
+      </div>
+      <button class="btn btn-primary" onclick="openModal()" style="margin-left:14px">+ Add Course</button>
+    </div>
+
+    <div class="table-wrapper" style="margin-top:16px">
+      <table class="data-table">
+        <thead>
+          <tr><th>Code</th><th>Course Name</th><th>Teacher</th><th>Class</th><th>Credits</th><th>Schedule</th><th>Students</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 class="modal-title" id="modalTitle">Add Course</h2>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Course Name *</label><input class="form-input" id="fName" placeholder="Mathematics"/></div>
+      <div class="form-group"><label class="form-label">Course Code *</label><input class="form-input" id="fCode" placeholder="MATH101"/></div>
+      <div class="form-group">
+        <label class="form-label">Teacher *</label>
+        <select class="form-select" id="fTeacher"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Class</label>
+        <select class="form-select" id="fClass">
+          <option>9-A</option><option>9-B</option><option>10-A</option><option>10-B</option>
+          <option>11-A</option><option>11-B</option><option>12-A</option><option>12-B</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Credits</label><input class="form-input" id="fCredits" type="number" value="4" min="1" max="10"/></div>
+      <div class="form-group"><label class="form-label">Schedule</label><input class="form-input" id="fSchedule" placeholder="Mon/Wed 9AM"/></div>
+      <div class="form-group"><label class="form-label">Max Students</label><input class="form-input" id="fMax" type="number" value="40"/></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-select" id="fStatus"><option>Active</option><option>Inactive</option><option>Completed</option></select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCourse()">Save Course</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/storage.js"></script>
+<script>
+  let editId = null;
+
+  function populateTeachers() {
+    const sel = document.getElementById('fTeacher');
+    sel.innerHTML = SMS.getTeachers().map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+  }
+
+  function renderTable() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    let data = SMS.getCourses().filter(c =>
+      c.name.toLowerCase().includes(search) || c.code.toLowerCase().includes(search)
+    );
+    const tbody = document.getElementById('tableBody');
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-state-icon">📚</div><p>No courses found</p></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.map(c => `
+      <tr>
+        <td><strong>${c.code}</strong></td>
+        <td>${c.name}</td>
+        <td style="color:var(--text2)">${c.teacher}</td>
+        <td><span class="badge badge-new">${c.class}</span></td>
+        <td style="text-align:center">${c.credits}</td>
+        <td style="color:var(--text2);font-size:12px">${c.schedule||'—'}</td>
+        <td style="text-align:center">${c.students||0}</td>
+        <td><span class="badge badge-${c.status==='Active'?'active':'inactive'}">${c.status}</span></td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="editCourse(${c.id})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCourse(${c.id})" style="margin-left:6px">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openModal(reset = true) {
+    populateTeachers();
+    if (reset) {
+      editId = null;
+      document.getElementById('modalTitle').textContent = 'Add Course';
+      ['fName','fCode','fSchedule'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('fCredits').value = '4';
+      document.getElementById('fMax').value = '40';
+      document.getElementById('fStatus').value = 'Active';
+    }
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+  function editCourse(id) {
+    const c = SMS.getCourses().find(x => x.id === id);
+    if (!c) return;
+    editId = id;
+    populateTeachers();
+    document.getElementById('modalTitle').textContent = 'Edit Course';
+    document.getElementById('fName').value     = c.name;
+    document.getElementById('fCode').value     = c.code;
+    document.getElementById('fTeacher').value  = c.teacher;
+    document.getElementById('fClass').value    = c.class;
+    document.getElementById('fCredits').value  = c.credits;
+    document.getElementById('fSchedule').value = c.schedule;
+    document.getElementById('fMax').value      = c.maxStudents || 40;
+    document.getElementById('fStatus').value   = c.status;
+    openModal(false);
+  }
+
+  function saveCourse() {
+    const name = document.getElementById('fName').value.trim();
+    const code = document.getElementById('fCode').value.trim();
+    if (!name || !code) { showToast('Fill all required fields', 'error'); return; }
+    const obj = {
+      name, code,
+      teacher:     document.getElementById('fTeacher').value,
+      class:       document.getElementById('fClass').value,
+      credits:     parseInt(document.getElementById('fCredits').value),
+      schedule:    document.getElementById('fSchedule').value,
+      maxStudents: parseInt(document.getElementById('fMax').value),
+      status:      document.getElementById('fStatus').value,
+      students:    0,
+    };
+    if (editId) { obj.id = editId; SMS.updateCourse(obj); showToast('Course updated!'); }
+    else        { SMS.addCourse(obj); showToast('Course added!'); }
+    closeModal(); renderTable();
+  }
+
+  function deleteCourse(id) {
+    if (!confirm('Delete this course?')) return;
+    SMS.deleteCourse(id); showToast('Course deleted', 'error'); renderTable();
+  }
+
+  renderTable();
+</script>
+</body>
+</html>

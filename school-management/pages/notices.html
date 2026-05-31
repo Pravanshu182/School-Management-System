@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Notices — EduCore</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    .notice-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .notice-full-card {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; position: relative; overflow: hidden; transition: transform .2s;
+    }
+    .notice-full-card:hover { transform: translateY(-2px); }
+    .notice-full-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--tag-color, var(--accent));
+    }
+    .notice-type-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+      margin-bottom: 10px;
+    }
+    .notice-title { font-family: var(--font-head); font-size: 16px; margin-bottom: 8px; }
+    .notice-body  { color: var(--text2); font-size: 13px; line-height: 1.6; }
+    .notice-meta  { margin-top: 14px; font-size: 11px; color: var(--text2); display: flex; justify-content: space-between; align-items: center; }
+    .urgent-card  { --tag-color: #f7824f; }
+    .info-card    { --tag-color: #4f8ef7; }
+    .holiday-card { --tag-color: #4fbb7c; }
+  </style>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">E</div><span>EduCore</span></div>
+  <nav class="sidebar-nav">
+    <a href="../index.html" class="nav-item"><span class="nav-icon">⊞</span> Dashboard</a>
+    <a href="students.html"  class="nav-item"><span class="nav-icon">👤</span> Students</a>
+    <a href="teachers.html"  class="nav-item"><span class="nav-icon">🎓</span> Teachers</a>
+    <a href="courses.html"   class="nav-item"><span class="nav-icon">📚</span> Courses</a>
+    <a href="attendance.html" class="nav-item"><span class="nav-icon">✅</span> Attendance</a>
+    <a href="grades.html"    class="nav-item"><span class="nav-icon">📊</span> Grades</a>
+    <a href="notices.html"   class="nav-item active"><span class="nav-icon">📢</span> Notices</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card"><div class="user-avatar">A</div><div><div class="user-name">Admin</div><div class="user-role">Super Admin</div></div></div>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <h1 class="page-title">Notice Board</h1>
+  </header>
+  <div class="page-body">
+    <div class="section-header" style="margin-bottom:20px">
+      <div></div>
+      <button class="btn btn-primary" onclick="openModal()">📢 Post Notice</button>
+    </div>
+    <div class="notice-grid" id="noticeGrid"></div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 class="modal-title">Post New Notice</h2>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Title *</label>
+        <input class="form-input" id="fTitle" placeholder="Notice title…"/>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Body *</label>
+        <textarea class="form-input" id="fBody" rows="4" placeholder="Notice details…" style="resize:vertical"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-select" id="fType">
+          <option>Info</option><option>Urgent</option><option>Holiday</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Author</label>
+        <input class="form-input" id="fAuthor" value="Admin"/>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNotice()">Post Notice</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/storage.js"></script>
+<script>
+  const tagColors = { Urgent:'#f7824f', Info:'#4f8ef7', Holiday:'#4fbb7c' };
+
+  function timeAgo(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff/60000);
+    if (mins < 60) return `${mins} min${mins!==1?'s':''} ago`;
+    const hrs = Math.floor(mins/60);
+    if (hrs < 24) return `${hrs} hour${hrs!==1?'s':''} ago`;
+    return `${Math.floor(hrs/24)} day${Math.floor(hrs/24)!==1?'s':''} ago`;
+  }
+
+  function renderNotices() {
+    const data = SMS.getNotices().slice().reverse();
+    const grid = document.getElementById('noticeGrid');
+    if (!data.length) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">📢</div><p>No notices posted yet</p></div>`;
+      return;
+    }
+    grid.innerHTML = data.map(n => {
+      const cls = n.type.toLowerCase() + '-card';
+      const col = tagColors[n.type] || '#4f8ef7';
+      return `
+        <div class="notice-full-card ${cls}">
+          <span class="notice-type-badge" style="background:${col}22;color:${col}">${n.type}</span>
+          <div class="notice-title">${n.title}</div>
+          <div class="notice-body">${n.body}</div>
+          <div class="notice-meta">
+            <span>— ${n.author}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span>${timeAgo(n.date)}</span>
+              <button class="btn btn-danger btn-sm" onclick="deleteNotice(${n.id})">Delete</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function openModal() {
+    document.getElementById('fTitle').value = '';
+    document.getElementById('fBody').value  = '';
+    document.getElementById('fType').value  = 'Info';
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+  function saveNotice() {
+    const title = document.getElementById('fTitle').value.trim();
+    const body  = document.getElementById('fBody').value.trim();
+    if (!title || !body) { showToast('Fill title and body', 'error'); return; }
+    SMS.addNotice({
+      title, body,
+      type:   document.getElementById('fType').value,
+      author: document.getElementById('fAuthor').value || 'Admin',
+      date:   new Date().toISOString(),
+    });
+    showToast('Notice posted!');
+    closeModal(); renderNotices();
+  }
+
+  function deleteNotice(id) {
+    if (!confirm('Delete this notice?')) return;
+    SMS.deleteNotice(id); showToast('Notice deleted', 'error'); renderNotices();
+  }
+
+  renderNotices();
+</script>
+</body>
+</html>

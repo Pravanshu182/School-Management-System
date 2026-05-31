@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Attendance — EduCore</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">E</div><span>EduCore</span></div>
+  <nav class="sidebar-nav">
+    <a href="../index.html" class="nav-item"><span class="nav-icon">⊞</span> Dashboard</a>
+    <a href="students.html"  class="nav-item"><span class="nav-icon">👤</span> Students</a>
+    <a href="teachers.html"  class="nav-item"><span class="nav-icon">🎓</span> Teachers</a>
+    <a href="courses.html"   class="nav-item"><span class="nav-icon">📚</span> Courses</a>
+    <a href="attendance.html" class="nav-item active"><span class="nav-icon">✅</span> Attendance</a>
+    <a href="grades.html"    class="nav-item"><span class="nav-icon">📊</span> Grades</a>
+    <a href="notices.html"   class="nav-item"><span class="nav-icon">📢</span> Notices</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card"><div class="user-avatar">A</div><div><div class="user-name">Admin</div><div class="user-role">Super Admin</div></div></div>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <h1 class="page-title">Attendance</h1>
+  </header>
+  <div class="page-body">
+
+    <!-- Controls -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header"><h2>Mark Attendance</h2></div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <div class="form-group" style="flex:1;min-width:160px">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-input" id="attendDate" value=""/>
+        </div>
+        <div class="form-group" style="flex:1;min-width:160px">
+          <label class="form-label">Class</label>
+          <select class="form-select" id="attendClass" onchange="loadStudents()">
+            <option>Select Class</option>
+            <option>9-A</option><option>9-B</option><option>10-A</option><option>10-B</option>
+            <option>11-A</option><option>11-B</option><option>12-A</option><option>12-B</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Student Attendance Table -->
+    <div class="table-wrapper" id="attendanceSection" style="display:none">
+      <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span id="classLabel" style="font-weight:600"></span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="markAll('Present')">✅ All Present</button>
+          <button class="btn btn-ghost btn-sm" onclick="markAll('Absent')">❌ All Absent</button>
+          <button class="btn btn-primary btn-sm" onclick="saveAttendance()">💾 Save</button>
+        </div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Roll No</th><th>Name</th><th>Present</th><th>Absent</th><th>Late</th></tr></thead>
+        <tbody id="attendBody"></tbody>
+      </table>
+    </div>
+
+    <!-- History -->
+    <div class="card" style="margin-top:20px">
+      <div class="card-header"><h2>Attendance History</h2></div>
+      <table class="data-table">
+        <thead><tr><th>Date</th><th>Class</th><th>Total</th><th>Present</th><th>Absent</th><th>%</th></tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</main>
+
+<script src="../js/storage.js"></script>
+<script>
+  document.getElementById('attendDate').value = new Date().toISOString().split('T')[0];
+  let currentStudents = [];
+
+  function loadStudents() {
+    const cls = document.getElementById('attendClass').value;
+    if (cls === 'Select Class') { document.getElementById('attendanceSection').style.display='none'; return; }
+    currentStudents = SMS.getStudents().filter(s => s.class === cls && s.status === 'Active');
+    document.getElementById('classLabel').textContent = `Class ${cls} — ${currentStudents.length} students`;
+    document.getElementById('attendanceSection').style.display = 'block';
+    const tbody = document.getElementById('attendBody');
+    tbody.innerHTML = currentStudents.map(s => `
+      <tr>
+        <td><strong>${s.rollNo}</strong></td>
+        <td>${s.name}</td>
+        <td><label style="cursor:pointer"><input type="radio" name="att_${s.id}" value="Present" checked/> Present</label></td>
+        <td><label style="cursor:pointer"><input type="radio" name="att_${s.id}" value="Absent"/> Absent</label></td>
+        <td><label style="cursor:pointer"><input type="radio" name="att_${s.id}" value="Late"/> Late</label></td>
+      </tr>
+    `).join('');
+  }
+
+  function markAll(status) {
+    currentStudents.forEach(s => {
+      const radio = document.querySelector(`input[name="att_${s.id}"][value="${status}"]`);
+      if (radio) radio.checked = true;
+    });
+  }
+
+  function saveAttendance() {
+    if (!currentStudents.length) { showToast('Load a class first', 'error'); return; }
+    const date = document.getElementById('attendDate').value;
+    const cls  = document.getElementById('attendClass').value;
+    const records = currentStudents.map(s => {
+      const val = document.querySelector(`input[name="att_${s.id}"]:checked`)?.value || 'Present';
+      return { studentId: s.id, studentName: s.name, status: val };
+    });
+    const present = records.filter(r => r.status === 'Present').length;
+    const absent  = records.filter(r => r.status === 'Absent').length;
+    SMS.markAttendance({ date, class: cls, records, present, absent, total: records.length });
+    showToast(`Attendance saved for Class ${cls}!`);
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const data = SMS.getAttendance().slice().reverse();
+    const tbody = document.getElementById('historyBody');
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-row">No attendance records yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(a => {
+      const pct = Math.round((a.present / a.total) * 100);
+      return `<tr>
+        <td>${a.date}</td>
+        <td><span class="badge badge-new">${a.class}</span></td>
+        <td>${a.total}</td>
+        <td style="color:#4fbb7c"><strong>${a.present}</strong></td>
+        <td style="color:#f7824f">${a.absent}</td>
+        <td><span class="badge badge-${pct>=75?'active':'inactive'}">${pct}%</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  renderHistory();
+</script>
+</body>
+</html>

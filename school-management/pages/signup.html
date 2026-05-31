@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Signup – EduCore</title>
+  <meta name="description" content="Signup page for EduCore school management system. Create a new account as Student, Teacher, or Admin.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap"
+        rel="stylesheet">
+</head>
+<body>
+  <section class="page-body">
+    <div class="glass-card signup-card">
+      <h1 class="form-title">Create Your Account</h1>
+
+      <form id="signupForm" class="form-grid">
+        <!-- Role selector (dropdown) -->
+        <div class="form-group full">
+          <label class="form-label" for="signupRole">Register as</label>
+          <select id="signupRole" class="form-select" required>
+            <option value="student">Student</option>
+            <option value="teacher">Teacher</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+
+        <div class="form-group full">
+          <label class="form-label" for="signupName">Full Name</label>
+          <input type="text" id="signupName" class="form-input" required placeholder="John Doe">
+        </div>
+
+        <div class="form-group full">
+          <label class="form-label" for="signupEmail">Email</label>
+          <input type="email" id="signupEmail" class="form-input" required placeholder="you@example.com">
+        </div>
+
+        <div class="form-group full">
+          <label class="form-label" for="signupPassword">Password</label>
+          <input type="password" id="signupPassword" class="form-input" required placeholder="••••••••">
+        </div>
+
+        <div class="form-group full">
+          <label class="form-label" for="signupConfirm">Confirm Password</label>
+          <input type="password" id="signupConfirm" class="form-input" required placeholder="••••••••">
+        </div>
+
+        <div class="form-actions full">
+          <button type="submit" class="btn btn-primary">Sign Up</button>
+          <a href="login.html" class="btn btn-ghost">Already have an account?</a>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <script src="js/auth.js"></script>
+</body>
+</html>

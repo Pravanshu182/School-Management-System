@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Teachers — EduCore</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">E</div><span>EduCore</span></div>
+  <nav class="sidebar-nav">
+    <a href="../index.html" class="nav-item"><span class="nav-icon">⊞</span> Dashboard</a>
+    <a href="students.html"  class="nav-item"><span class="nav-icon">👤</span> Students</a>
+    <a href="teachers.html"  class="nav-item active"><span class="nav-icon">🎓</span> Teachers</a>
+    <a href="courses.html"   class="nav-item"><span class="nav-icon">📚</span> Courses</a>
+    <a href="attendance.html" class="nav-item"><span class="nav-icon">✅</span> Attendance</a>
+    <a href="grades.html"    class="nav-item"><span class="nav-icon">📊</span> Grades</a>
+    <a href="notices.html"   class="nav-item"><span class="nav-icon">📢</span> Notices</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card"><div class="user-avatar">A</div><div><div class="user-name">Admin</div><div class="user-role">Super Admin</div></div></div>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <h1 class="page-title">Teachers</h1>
+  </header>
+  <div class="page-body">
+    <div class="section-header">
+      <div class="search-bar" style="flex:1;margin-bottom:0">
+        <input type="text" class="search-input" placeholder="🔍  Search by name or subject…" id="searchInput" oninput="renderTable()"/>
+      </div>
+      <button class="btn btn-primary" onclick="openModal()" style="margin-left:14px">+ Add Teacher</button>
+    </div>
+
+    <div class="table-wrapper" style="margin-top:16px">
+      <table class="data-table">
+        <thead>
+          <tr><th>Name</th><th>Subject</th><th>Email</th><th>Phone</th><th>Experience</th><th>Salary</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 class="modal-title" id="modalTitle">Add Teacher</h2>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" id="fName" placeholder="Dr. Ramesh Kumar"/></div>
+      <div class="form-group"><label class="form-label">Subject *</label><input class="form-input" id="fSubject" placeholder="Mathematics"/></div>
+      <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="fEmail" type="email" placeholder="teacher@school.com"/></div>
+      <div class="form-group"><label class="form-label">Phone *</label><input class="form-input" id="fPhone" placeholder="10-digit mobile"/></div>
+      <div class="form-group"><label class="form-label">Qualification</label><input class="form-input" id="fQual" placeholder="PhD, M.Sc..."/></div>
+      <div class="form-group"><label class="form-label">Experience</label><input class="form-input" id="fExp" placeholder="5 years"/></div>
+      <div class="form-group"><label class="form-label">Salary (₹)</label><input class="form-input" id="fSalary" type="number" placeholder="50000"/></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-select" id="fStatus"><option>Active</option><option>Inactive</option></select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTeacher()">Save Teacher</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/storage.js"></script>
+<script>
+  let editId = null;
+
+  function renderTable() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    let data = SMS.getTeachers().filter(t =>
+      t.name.toLowerCase().includes(search) || t.subject.toLowerCase().includes(search)
+    );
+    const tbody = document.getElementById('tableBody');
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">🎓</div><p>No teachers found</p></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.map(t => `
+      <tr>
+        <td><strong>${t.name}</strong></td>
+        <td><span class="badge badge-new">${t.subject}</span></td>
+        <td style="color:var(--text2)">${t.email}</td>
+        <td style="color:var(--text2)">${t.phone}</td>
+        <td>${t.experience || '—'}</td>
+        <td>₹${Number(t.salary||0).toLocaleString('en-IN')}</td>
+        <td><span class="badge badge-${t.status==='Active'?'active':'inactive'}">${t.status}</span></td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="editTeacher(${t.id})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteTeacher(${t.id})" style="margin-left:6px">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openModal(reset = true) {
+    if (reset) {
+      editId = null;
+      document.getElementById('modalTitle').textContent = 'Add Teacher';
+      ['fName','fSubject','fEmail','fPhone','fQual','fExp','fSalary'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('fStatus').value = 'Active';
+    }
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+  function editTeacher(id) {
+    const t = SMS.getTeachers().find(x => x.id === id);
+    if (!t) return;
+    editId = id;
+    document.getElementById('modalTitle').textContent = 'Edit Teacher';
+    document.getElementById('fName').value    = t.name;
+    document.getElementById('fSubject').value = t.subject;
+    document.getElementById('fEmail').value   = t.email;
+    document.getElementById('fPhone').value   = t.phone;
+    document.getElementById('fQual').value    = t.qualification;
+    document.getElementById('fExp').value     = t.experience;
+    document.getElementById('fSalary').value  = t.salary;
+    document.getElementById('fStatus').value  = t.status;
+    openModal(false);
+  }
+
+  function saveTeacher() {
+    const name    = document.getElementById('fName').value.trim();
+    const subject = document.getElementById('fSubject').value.trim();
+    const email   = document.getElementById('fEmail').value.trim();
+    const phone   = document.getElementById('fPhone').value.trim();
+    if (!name || !subject || !email || !phone) { showToast('Fill all required fields', 'error'); return; }
+    const obj = {
+      name, subject, email, phone,
+      qualification: document.getElementById('fQual').value,
+      experience:    document.getElementById('fExp').value,
+      salary:        document.getElementById('fSalary').value,
+      status:        document.getElementById('fStatus').value,
+      joinDate:      new Date().toISOString().split('T')[0],
+    };
+    if (editId) { obj.id = editId; SMS.updateTeacher(obj); showToast('Teacher updated!'); }
+    else        { SMS.addTeacher(obj); showToast('Teacher added!'); }
+    closeModal(); renderTable();
+  }
+
+  function deleteTeacher(id) {
+    if (!confirm('Delete this teacher?')) return;
+    SMS.deleteTeacher(id);
+    showToast('Teacher deleted', 'error');
+    renderTable();
+  }
+
+  renderTable();
+</script>
+</body>
+</html>

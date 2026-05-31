@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Students — EduCore</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">E</div><span>EduCore</span></div>
+  <nav class="sidebar-nav">
+    <a href="../index.html" class="nav-item"><span class="nav-icon">⊞</span> Dashboard</a>
+    <a href="students.html"  class="nav-item active"><span class="nav-icon">👤</span> Students</a>
+    <a href="teachers.html"  class="nav-item"><span class="nav-icon">🎓</span> Teachers</a>
+    <a href="courses.html"   class="nav-item"><span class="nav-icon">📚</span> Courses</a>
+    <a href="attendance.html" class="nav-item"><span class="nav-icon">✅</span> Attendance</a>
+    <a href="grades.html"    class="nav-item"><span class="nav-icon">📊</span> Grades</a>
+    <a href="notices.html"   class="nav-item"><span class="nav-icon">📢</span> Notices</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card"><div class="user-avatar">A</div><div><div class="user-name">Admin</div><div class="user-role">Super Admin</div></div></div>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <h1 class="page-title">Students</h1>
+    <div class="topbar-right">
+      <span id="studentCount" style="color:var(--text2);font-size:13px;"></span>
+    </div>
+  </header>
+
+  <div class="page-body">
+    <div class="section-header">
+      <div class="search-bar" style="flex:1;margin-bottom:0">
+        <input type="text" class="search-input" placeholder="🔍  Search by name, email or roll no…" id="searchInput" oninput="renderTable()"/>
+        <select class="search-input" style="max-width:140px" id="filterStatus" onchange="renderTable()">
+          <option value="">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+        <select class="search-input" style="max-width:120px" id="filterClass" onchange="renderTable()">
+          <option value="">All Classes</option>
+          <option>9-A</option><option>9-B</option>
+          <option>10-A</option><option>10-B</option>
+          <option>11-A</option><option>11-B</option>
+          <option>12-A</option><option>12-B</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="openModal()" style="margin-left:14px">+ Add Student</button>
+    </div>
+
+    <div class="table-wrapper" style="margin-top:16px">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Roll No</th>
+            <th>Name</th>
+            <th>Class</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 class="modal-title" id="modalTitle">Add Student</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input class="form-input" id="fName" placeholder="e.g. Aarav Sharma"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Roll Number *</label>
+        <input class="form-input" id="fRollNo" placeholder="e.g. S007"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input class="form-input" id="fEmail" type="email" placeholder="email@school.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone *</label>
+        <input class="form-input" id="fPhone" placeholder="10-digit mobile"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Class *</label>
+        <select class="form-select" id="fClass">
+          <option>9-A</option><option>9-B</option>
+          <option>10-A</option><option>10-B</option>
+          <option>11-A</option><option>11-B</option>
+          <option>12-A</option><option>12-B</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Gender</label>
+        <select class="form-select" id="fGender">
+          <option>Male</option><option>Female</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date of Birth</label>
+        <input class="form-input" id="fDob" type="date"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="fStatus">
+          <option>Active</option><option>Inactive</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Address</label>
+        <input class="form-input" id="fAddress" placeholder="City, State"/>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStudent()">Save Student</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/storage.js"></script>
+<script>
+  let editId = null;
+
+  function renderTable() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const status = document.getElementById('filterStatus').value;
+    const cls    = document.getElementById('filterClass').value;
+
+    let data = SMS.getStudents().filter(s => {
+      const matchSearch = s.name.toLowerCase().includes(search) ||
+                          s.email.toLowerCase().includes(search) ||
+                          s.rollNo.toLowerCase().includes(search);
+      const matchStatus = !status || s.status === status;
+      const matchClass  = !cls    || s.class  === cls;
+      return matchSearch && matchStatus && matchClass;
+    });
+
+    document.getElementById('studentCount').textContent = `${data.length} student${data.length!==1?'s':''}`;
+
+    const tbody = document.getElementById('tableBody');
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">👤</div><p>No students found</p></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map(s => `
+      <tr>
+        <td><strong>${s.rollNo}</strong></td>
+        <td>${s.name}</td>
+        <td><span class="badge badge-new">${s.class}</span></td>
+        <td style="color:var(--text2)">${s.email}</td>
+        <td style="color:var(--text2)">${s.phone}</td>
+        <td><span class="badge badge-${s.status==='Active'?'active':'inactive'}">${s.status}</span></td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="editStudent(${s.id})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.id})" style="margin-left:6px">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openModal(reset = true) {
+    if (reset) {
+      editId = null;
+      document.getElementById('modalTitle').textContent = 'Add Student';
+      ['fName','fRollNo','fEmail','fPhone','fAddress','fDob'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('fStatus').value = 'Active';
+      document.getElementById('fClass').value  = '9-A';
+      document.getElementById('fGender').value = 'Male';
+    }
+    document.getElementById('modal').classList.add('open');
+  }
+
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+  function editStudent(id) {
+    const s = SMS.getStudent(id);
+    if (!s) return;
+    editId = id;
+    document.getElementById('modalTitle').textContent = 'Edit Student';
+    document.getElementById('fName').value    = s.name;
+    document.getElementById('fRollNo').value  = s.rollNo;
+    document.getElementById('fEmail').value   = s.email;
+    document.getElementById('fPhone').value   = s.phone;
+    document.getElementById('fAddress').value = s.address;
+    document.getElementById('fDob').value     = s.dob;
+    document.getElementById('fClass').value   = s.class;
+    document.getElementById('fGender').value  = s.gender;
+    document.getElementById('fStatus').value  = s.status;
+    openModal(false);
+  }
+
+  function saveStudent() {
+    const name   = document.getElementById('fName').value.trim();
+    const rollNo = document.getElementById('fRollNo').value.trim();
+    const email  = document.getElementById('fEmail').value.trim();
+    const phone  = document.getElementById('fPhone').value.trim();
+    if (!name || !rollNo || !email || !phone) { showToast('Please fill all required fields', 'error'); return; }
+
+    const obj = {
+      name, rollNo, email, phone,
+      class:    document.getElementById('fClass').value,
+      gender:   document.getElementById('fGender').value,
+      dob:      document.getElementById('fDob').value,
+      address:  document.getElementById('fAddress').value,
+      status:   document.getElementById('fStatus').value,
+      joinDate: new Date().toISOString().split('T')[0],
+    };
+
+    if (editId) { obj.id = editId; SMS.updateStudent(obj); showToast('Student updated!'); }
+    else        { SMS.addStudent(obj); showToast('Student added!'); }
+
+    closeModal();
+    renderTable();
+  }
+
+  function deleteStudent(id) {
+    if (!confirm('Delete this student?')) return;
+    SMS.deleteStudent(id);
+    showToast('Student deleted', 'error');
+    renderTable();
+  }
+
+  renderTable();
+</script>
+</body>
+</html>
